@@ -119,6 +119,9 @@ struct bitmap_header_t {
 		
 		// this will populate the dim_x, dim_y, and dim_z fields
 		read_cine_info();		
+		data_all = new float[dim_x * dim_y * dim_z];
+		data_frame = new float[dim_x * dim_y];
+		
 	}
 	
 	// details referred to in Cine.h
@@ -127,18 +130,28 @@ struct bitmap_header_t {
 		char err_msg[256];
 		int fd;
 
+		printf("Size: %d %d %d\n", dim_x, dim_y, dim_z);
+		
+		const unsigned int x = dim_x;
+		const unsigned int y = dim_y;
+		const unsigned int z = dim_z;
+		
+		printf("Size: %d %d %d\n", dim_x, dim_y, dim_z);
+		
 		// Create the file
 		fd = creat(filename_out, 0644);
 		if(fd == -1) {
 		snprintf(err_msg, 256, "Cannot open file \"%s\"", filename_out);
 		ERROR(err_msg);
 		}
+		
+		printf("Size: %d %d %d\n", dim_x, dim_y, dim_z);
 		// Write the size along the X dimension
-		write(fd, & dim_x, sizeof(unsigned int));
+		write(fd, & x, sizeof(unsigned int));
 		// Write the size along the Y dimension
-		write(fd, & dim_y, sizeof(unsigned int));
+		write(fd, & y, sizeof(unsigned int));
 		// Write the size along the Z dimension
-		write(fd, & dim_z, sizeof(unsigned int));
+		write(fd, & z, sizeof(unsigned int));
 		// Write the data
 		write(fd, data_all, dim_x * dim_y * dim_z * sizeof(float));
 		// Close the file
@@ -212,6 +225,7 @@ struct bitmap_header_t {
 	
 	// read_cine_3d referred to in Cine.h
 	void Cine::read_cine_3d(	) {
+		
 		struct bitmap_header_t bitmap_header;
 		struct cine_header_t cine_header;
 		uint32_t frame_size_bytes;
@@ -221,12 +235,13 @@ struct bitmap_header_t {
 		uint16_t *frame;
 		int i, j, k;
 		int fd;
-
+		
 		fd = open(filename, O_RDONLY);
 		if(fd == -1) {
 		snprintf(err_msg, 256, "Cannot open file \"%s\"", filename);
 		ERROR(err_msg);
 		}
+		
 		read(fd, & cine_header, sizeof(cine_header));
 		if(cine_header.type != ('C' | ('I' << 8))) {
 		ERROR("Invalid CINE file!");
@@ -243,6 +258,7 @@ struct bitmap_header_t {
 		if(dim_z != cine_header.saved_count) {
 		ERROR("Unexpected data size in the Z dimension!");
 		}
+		
 		read(fd, & bitmap_header, sizeof(bitmap_header));
 		if(bitmap_header.header_size != sizeof(bitmap_header)) {
 		ERROR("Unexpected bitmap header length!");
@@ -262,27 +278,34 @@ struct bitmap_header_t {
 		if(bitmap_header.frame_size_bytes != (dim_x * dim_y * sizeof(*frame))) {
 		ERROR("Unexpected byte size of image frames!");
 		}
+		
 		lseek(fd, cine_header.offset_offsets, SEEK_SET);
 		offsets = (int64_t *)calloc(dim_z, sizeof(*offsets));
 		read(fd, offsets, dim_z * sizeof(*offsets));
 		frame = (uint16_t *)calloc(dim_x * dim_y, sizeof(*frame));
+		
+		//data_all = new float[dim_x * dim_y * dim_z];
+		
 		for(k = 0; k < dim_z; ++k) {
-		lseek64(fd, offsets[k], SEEK_SET);
-		read(fd, & annot_size, sizeof(annot_size));
-		if(annot_size > 8) {
-		  lseek(fd, annot_size - 8, SEEK_CUR);
+			lseek64(fd, offsets[k], SEEK_SET);
+			read(fd, & annot_size, sizeof(annot_size));
+			if(annot_size > 8) {
+			  lseek(fd, annot_size - 8, SEEK_CUR);
+			}
+			
+			read(fd, & frame_size_bytes, sizeof(frame_size_bytes));
+			if(frame_size_bytes != (dim_x * dim_y * sizeof(*frame))) {
+			  ERROR("Unexpected byte size of image frames!");
+			}
+			read(fd, frame, frame_size_bytes);
+			
+			for(i = 0; i < dim_x; ++i) {
+			  for(j = 0; j < dim_y; ++j) {
+				data_all[MAP_3D(dim_x, dim_y, dim_z, i, j, k)] = (float) frame[MAP_2D(dim_x, dim_y, i, dim_y - j - 1)];
+			  }
+			}
 		}
-		read(fd, & frame_size_bytes, sizeof(frame_size_bytes));
-		if(frame_size_bytes != (dim_x * dim_y * sizeof(*frame))) {
-		  ERROR("Unexpected byte size of image frames!");
-		}
-		read(fd, frame, frame_size_bytes);
-		for(i = 0; i < dim_x; ++i) {
-		  for(j = 0; j < dim_y; ++j) {
-			data_all[MAP_3D(dim_x, dim_y, dim_z, i, j, k)] = (float) frame[MAP_2D(dim_x, dim_y, i, dim_y - j - 1)];
-		  }
-		}
-		}
+		
 		free(frame);
 		free(offsets);
 		close(fd);
@@ -347,12 +370,16 @@ struct bitmap_header_t {
 	  int64_t offset;
 	  int i, j;
 	  int fd;
-
+	  
+		
+		
 	  fd = open(filename, O_RDONLY);
 	  if(fd == -1) {
 		snprintf(err_msg, 256, "Cannot open file \"%s\"", filename);
 		ERROR(err_msg);
 	  }
+	  
+	  printf("Size2: %d %d %d\n", dim_x, dim_y, dim_z);
 	  
 	  read(fd, & cine_header, sizeof(cine_header));
 	  if(cine_header.type != ('C' | ('I' << 8))) {
@@ -370,6 +397,8 @@ struct bitmap_header_t {
 	  if(index >= cine_header.saved_count) {
 		ERROR("Invalid frame index!");
 	  }
+	  
+	  printf("Size3: %d %d %d\n", dim_x, dim_y, dim_z);
 	  
 	  read(fd, & bitmap_header, sizeof(bitmap_header));
 	  if(bitmap_header.header_size != sizeof(bitmap_header)) {
@@ -390,25 +419,25 @@ struct bitmap_header_t {
 	  if(bitmap_header.frame_size_bytes != (dim_x * dim_y * sizeof(*frame))) {
 		ERROR("Unexpected byte size of image frames!");
 	  }
-	  
+	  printf("Size4: %d %d %d\n", dim_x, dim_y, dim_z);
 	  lseek(fd, cine_header.offset_offsets + sizeof(offset) * index, SEEK_SET);
-	  
+	  printf("Size5: %d %d %d\n", dim_x, dim_y, dim_z);
 	  read(fd, & offset, sizeof(offset));
 	  
 	  frame = (uint16_t *)calloc(dim_x * dim_y, sizeof(*frame));
 	  
 	  lseek64(fd, offset, SEEK_SET);
-	  
+	  printf("Size6: %d %d %d\n", dim_x, dim_y, dim_z);
 	  read(fd, & annot_size, sizeof(annot_size));
 	  if(annot_size > 8) {
 		lseek(fd, annot_size - 8, SEEK_CUR);
 	  }
-	  
+	  printf("Size7: %d %d %d\n", dim_x, dim_y, dim_z);
 	  read(fd, & frame_size_bytes, sizeof(frame_size_bytes));
 	  if(frame_size_bytes != (dim_x * dim_y * sizeof(*frame))) {
 		ERROR("Unexpected byte size of image frames!");
 	  }
-	  
+	  printf("Size8: %d %d %d\n", dim_x, dim_y, dim_z);
 	  read(fd, frame, frame_size_bytes);
 	  
 	  for(i = 0; i < dim_x; ++i) {
@@ -416,6 +445,7 @@ struct bitmap_header_t {
 		  data_frame[MAP_2D(dim_x, dim_y, i, j)] = (float) frame[MAP_2D(dim_x, dim_y, i, dim_y - j - 1)];
 		}
 	  }
+	  printf("Size9: %d %d %d\n", dim_x, dim_y, dim_z);
 	  free(frame);
 	  close(fd);
 	  return;
