@@ -18,7 +18,8 @@
 // Luca's code.
 	
 
-// #define _LARGEFILE64_SOURCE
+//#define _LARGEFILE64_SOURCE
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -31,6 +32,8 @@
 #include <math.h>
 #include <string>
 #include "Cine.h"
+
+using namespace std;
 
 // Macro used to terminate the program with an error message
 #define ABORT(__message) do {											\
@@ -112,11 +115,12 @@ struct bitmap_header_t {
 		dim_y = 0;
 		dim_z = 0;
 		
-		// Make deep copy of filename
-		filename = new char[strlen(name)];		
-		std::string temp = std::string(name);
-		filename = temp.c_str();
+		// Make deep copy of filename:  causes a memory leak
+		//filename = new char[strlen(name)];		
+		//std::string temp = std::string(name);
+		//filename = temp.c_str();
 		
+		filename = name;
 		// this will populate the dim_x, dim_y, and dim_z fields
 		read_cine_info();		
 		data_all = new float[dim_x * dim_y * dim_z];
@@ -355,12 +359,12 @@ struct bitmap_header_t {
 			ERROR("Unexpected byte size of image frames!");
 		}
 		close(fd);
+		
 		return;
 	}
 	
 	// read_cine_frame referred to in Cine.h
-	void Cine::read_cine_frame(	const unsigned int index) {
-		
+	float* Cine::read_cine_frame(	const unsigned int index	) {
 	  struct bitmap_header_t bitmap_header;
 	  struct cine_header_t cine_header;
 	  uint32_t frame_size_bytes;
@@ -370,16 +374,12 @@ struct bitmap_header_t {
 	  int64_t offset;
 	  int i, j;
 	  int fd;
-	  
-		
 		
 	  fd = open(filename, O_RDONLY);
 	  if(fd == -1) {
 		snprintf(err_msg, 256, "Cannot open file \"%s\"", filename);
 		ERROR(err_msg);
 	  }
-	  
-	  printf("Size2: %d %d %d\n", dim_x, dim_y, dim_z);
 	  
 	  read(fd, & cine_header, sizeof(cine_header));
 	  if(cine_header.type != ('C' | ('I' << 8))) {
@@ -397,8 +397,6 @@ struct bitmap_header_t {
 	  if(index >= cine_header.saved_count) {
 		ERROR("Invalid frame index!");
 	  }
-	  
-	  printf("Size3: %d %d %d\n", dim_x, dim_y, dim_z);
 	  
 	  read(fd, & bitmap_header, sizeof(bitmap_header));
 	  if(bitmap_header.header_size != sizeof(bitmap_header)) {
@@ -419,25 +417,26 @@ struct bitmap_header_t {
 	  if(bitmap_header.frame_size_bytes != (dim_x * dim_y * sizeof(*frame))) {
 		ERROR("Unexpected byte size of image frames!");
 	  }
-	  printf("Size4: %d %d %d\n", dim_x, dim_y, dim_z);
+
 	  lseek(fd, cine_header.offset_offsets + sizeof(offset) * index, SEEK_SET);
-	  printf("Size5: %d %d %d\n", dim_x, dim_y, dim_z);
+
 	  read(fd, & offset, sizeof(offset));
-	  
 	  frame = (uint16_t *)calloc(dim_x * dim_y, sizeof(*frame));
-	  
+	  //frame = new uint16_t[dim_x * dim_y];
+
 	  lseek64(fd, offset, SEEK_SET);
-	  printf("Size6: %d %d %d\n", dim_x, dim_y, dim_z);
+
 	  read(fd, & annot_size, sizeof(annot_size));
 	  if(annot_size > 8) {
 		lseek(fd, annot_size - 8, SEEK_CUR);
 	  }
-	  printf("Size7: %d %d %d\n", dim_x, dim_y, dim_z);
+
 	  read(fd, & frame_size_bytes, sizeof(frame_size_bytes));
+	 
 	  if(frame_size_bytes != (dim_x * dim_y * sizeof(*frame))) {
 		ERROR("Unexpected byte size of image frames!");
 	  }
-	  printf("Size8: %d %d %d\n", dim_x, dim_y, dim_z);
+	   
 	  read(fd, frame, frame_size_bytes);
 	  
 	  for(i = 0; i < dim_x; ++i) {
@@ -445,10 +444,11 @@ struct bitmap_header_t {
 		  data_frame[MAP_2D(dim_x, dim_y, i, j)] = (float) frame[MAP_2D(dim_x, dim_y, i, dim_y - j - 1)];
 		}
 	  }
-	  printf("Size9: %d %d %d\n", dim_x, dim_y, dim_z);
+
 	  free(frame);
+	  //delete(frame);
 	  close(fd);
-	  return;
+	  return data_frame;
 	}
 	
 	void Cine::print_dim(){
@@ -475,3 +475,36 @@ struct bitmap_header_t {
 	}
 		
 	const char * Cine::Filename(){return filename;}
+	
+	float* Cine::Data_Frame()
+	{
+		float *outFloat = new float[dim_x * dim_y];
+		
+		for(int i = 0; i<dim_x;i++)
+		{
+			for(int j = 0; j<dim_y;j++)
+			{
+				outFloat[MAP_2D(dim_x, dim_y, i, j)] =  data_frame[MAP_2D(dim_x, dim_y, i, j)];
+			}
+		}
+		
+		return outFloat;
+	}
+	
+	float *Cine::Data_All()
+	{
+		float *outFloat = new float[dim_x * dim_y * dim_z];
+		
+		for(int i = 0; i<dim_x;i++)
+		{
+			for(int j = 0; j<dim_y;j++)
+			{
+				for(int k = 0; k < dim_z; k++)
+				{
+					outFloat[MAP_3D(dim_x, dim_y, dim_z, i, j, k)] =  data_frame[MAP_3D(dim_x, dim_y, dim_z, i, j, k)];
+				}
+			}
+		}
+		
+		return outFloat;
+	}

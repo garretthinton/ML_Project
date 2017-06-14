@@ -20,26 +20,11 @@
 #ifndef CINE_H
 #define CINE_H
 
-//#define _LARGEFILE64_SOURCE
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <stdint.h>
-//#include <unistd.h>
-//#include <sys/types.h>
-//#include <sys/stat.h>
-//#include <fcntl.h>
-//#include <time.h>
-//#include <sys/time.h>
-//#include <string>
-//#include <math.h>
+//#include "Contracting_Grid.h"
 
 class Cine
 {
 	private:
-		
-		// This stores the raw data of the .cine file
-		float *data_all;
-		float *data_frame;
 		
 		// These are the variables for the x, y, and z dimensions.
 		// The x and y are dimensions for each frame, while the z variable shows how 
@@ -48,6 +33,10 @@ class Cine
 		
 		// The filename of the .cine file being used.
 		const char *filename;
+		
+		// This stores the raw data of the .cine file
+		float *data_all;
+		float *data_frame;
 	
 	public:
 	
@@ -141,9 +130,9 @@ class Cine
 				frame number.
 			-const char *filename:  The name of the .cine file to be read.
 		Outputs:
-			-None:  But the true output is the float *data variable.
+			-float *:  It will output the data frame.  But the true output is the float *data variable.
 		*/
-		void read_cine_frame(	const unsigned int index  );
+		float* read_cine_frame(	const unsigned int index  );
 		
 		/*
 		Title: print_dim
@@ -168,8 +157,15 @@ class Cine
 		void Filename(char *name);
 		const char* Filename();
 		
+		// Getter for the data frame
+		float *Data_Frame();
+		
+		// Getter for the data frame
+		float *Data_All();
+		
+		// This is needed to get the frame and dimension data to the Contracting_Grid class.
+		//friend void Contracting_Grid::getFrameData(Cine c);
 };
-
 
 
 
