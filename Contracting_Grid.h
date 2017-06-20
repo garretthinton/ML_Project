@@ -21,7 +21,14 @@
 #ifndef CONTRACTING_GRID_H
 #define CONTRACTING_GRID_H
 
+#include <iostream>
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include "Cine.h"
+#include "Device.h"
 
 #define MAP_2D(__dimx, __dimy, __x, __y)		((__y) * (__dimx) + (__x))
 
@@ -44,7 +51,7 @@ class Contracting_Grid
 		float *frame;
 				
 		// The point with the max value in the current iteration of the Contracting Grid algorithm
-		unsigned int tempSquareCenter;
+		//unsigned int tempSquareCenter;
 		
 		// The sharpCenter pixel data points
 		unsigned int sharp_x, sharp_y;
@@ -92,6 +99,17 @@ class Contracting_Grid
 		Description:  An overloaded Constructor.  This gets the dim_x, dim_y, and frame data from the Cine class and makes some assumptions about the rest of the class, such as the distance in between the surfaces.  
 		Inputs:  
 			-Cine c:  This is a friend member defined in Cine.h.
+			-float shrinkFactor:  How much to shrink the square grid with each iteration.
+		Outputs:	NONE
+		*/
+		Contracting_Grid(	Cine c, 
+							float shrinkFactor_in);
+		
+		/*
+		Title: Contracting_Grid
+		Description:  An overloaded Constructor.  This gets the dim_x, dim_y, and frame data from the Cine class and makes some assumptions about the rest of the class, such as the distance in between the surfaces.  
+		Inputs:  
+			-Cine c:  This is a friend member defined in Cine.h.
 			-int iterations:	This is the amount of iterations to be run on the algorithm.
 			-float shrinkFactor:  How much to shrink the square grid with each iteration.
 		Outputs:	NONE
@@ -99,6 +117,19 @@ class Contracting_Grid
 		Contracting_Grid(	Cine c, 
 							unsigned int iterations,
 							float shrinkFactor);
+							
+		/*
+		Title: Contracting_Grid
+		Description:  An overloaded Constructor.  This gets the dim_x, dim_y, and frame data from the Cine class and gets all other needed data from the constructor.  
+		Inputs:  
+			-Cine c:  This is a friend member defined in Cine.h.
+			-float shrinkFactor:  How much to shrink the square grid with each iteration.
+			-const int distance_in:	the distance between surfaces in the imaging system.
+		Outputs:	NONE
+		*/
+		Contracting_Grid(	Cine c, 
+							float shrinkFactor_in,
+							float distance_in);
 		
 		/*
 		Title: Contracting_Grid
@@ -134,7 +165,7 @@ class Contracting_Grid
 		Inputs:  	NONE
 		Outputs:	NONE
 		*/
-		void findSharpCenter();
+		void findSharpCenter_Rec();
 		
 		/*
 		Title: findBroadCenter

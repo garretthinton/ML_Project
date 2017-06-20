@@ -133,14 +133,10 @@ struct bitmap_header_t {
 							
 		char err_msg[256];
 		int fd;
-
-		printf("Size: %d %d %d\n", dim_x, dim_y, dim_z);
 		
 		const unsigned int x = dim_x;
 		const unsigned int y = dim_y;
 		const unsigned int z = dim_z;
-		
-		printf("Size: %d %d %d\n", dim_x, dim_y, dim_z);
 		
 		// Create the file
 		fd = creat(filename_out, 0644);
@@ -149,7 +145,6 @@ struct bitmap_header_t {
 		ERROR(err_msg);
 		}
 		
-		printf("Size: %d %d %d\n", dim_x, dim_y, dim_z);
 		// Write the size along the X dimension
 		write(fd, & x, sizeof(unsigned int));
 		// Write the size along the Y dimension
