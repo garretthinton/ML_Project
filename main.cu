@@ -33,8 +33,8 @@ int main(){
 		
 		cg.findSharpCenter_Rec();
 		
-		//cg.findBroadCenter();
-		//cg.findDirection();
+		cg.findBroadCenter();
+		cg.findDirection();
 	//}
 	
 	cine.print_dim();

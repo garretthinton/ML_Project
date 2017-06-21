@@ -25,5 +25,11 @@ __global__ void g_Zero_Array(		float *dev_frame,
 									unsigned int dim_x,
 									unsigned int dim_y);
 									
+__global__ void g_GetValues(		float *dev_frame,	// This is the full 2D array
+									int dim,			// 0 is x, 1 is y
+									float *dev_x);		// This is the output array
+									
+__global__ void g_GetCenters(		float *dev_x,
+									unsigned int *dev_broad_x);
 									
 #endif

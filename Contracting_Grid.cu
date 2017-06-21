@@ -342,7 +342,7 @@ void Contracting_Grid::findSharpCenter_Rec()
 	cout<< "frame[sharp_x, sharp_y+1]: "	<<   frame[MAP_2D(dim_x,dim_y,sharp_x, sharp_y + 1)]<<endl;
 	cout<< "frame[sharp_x-1, sharp_y+1]: "	<<    frame[MAP_2D(dim_x,dim_y,sharp_x - 1, sharp_y + 1)]<<endl;
 	cout<< "frame[sharp_x+1, sharp_y+1]: "	<<   frame[MAP_2D(dim_x,dim_y,sharp_x + 1, sharp_y + 1)]<<endl; 
-	
+	*/
 	
 	float temp1 = frame[MAP_2D(dim_x,dim_y,0,0)];
 	int tempi = 0;
@@ -360,7 +360,7 @@ void Contracting_Grid::findSharpCenter_Rec()
 	
 	cout<<"True max: "<< temp1 <<endl;
 	cout<< "i , j: \t" << tempi << " , " << tempj <<endl;
-	*/
+	
 	
 	// Free the data
 	CHECK(cudaFree(dev_frame));
@@ -373,45 +373,60 @@ void Contracting_Grid::findSharpCenter_Rec()
 // referred to in Contracting_Grid.h
 void Contracting_Grid::findBroadCenter()
 {	
-/*
+
 	// This is the frame data that will be going into the GPU
 	float *dev_frame;
-	unsigned int *max;
-	unsigned int *dev_x;
-	unsigned int *dev_y;
+	float *dev_x;
+	float *dev_y;
+	unsigned int *dev_broad_x;
+	unsigned int *dev_broad_y;
 	unsigned int dim_Samples = dim_x * dim_y;
 	
 	// Allocate memory in the GPU
 	CHECK(cudaMalloc((void**)&dev_frame, dim_Samples * sizeof(float)));
+	CHECK(cudaMalloc((void**)&dev_x, dim_x * sizeof(float)));
+	CHECK(cudaMalloc((void**)&dev_y, dim_y * sizeof(float)));
+	CHECK(cudaMalloc((void**)&dev_broad_x, sizeof(unsigned int)));
+	CHECK(cudaMalloc((void**)&dev_broad_y, sizeof(unsigned int)));
 	
 	// Copy the data to the GPU
 	CHECK(cudaMemcpy(dev_frame, frame, dim_Samples * sizeof(float), cudaMemcpyHostToDevice));
 	
-	// possibly take the sharpCenter(x,y) and delete those rows and columns + or - 10 lines
+	// Take the sharpCenter(x,y) and delete those rows and columns + or - 10 lines
+	
+	
 	
 	//0 or 1 depending on x or y dimension collection
-	g_GetValues(dev_frame, 0, );
-	g_GetValues(dev_frame, 1, );
+	if(dim_x % 16 == 0 && dim_y % 16 == 0)
+	{
+		g_GetValues<<<dim_x, dim_y/16>>>(dev_frame, 0, dev_x);
+		g_GetValues<<<dim_y, dim_x/16>>>(dev_frame, 1, dev_y);
+		
+		g_GetCenters<<<1, dim_x - 21>>>(dev_x, dev_broad_x);
+		g_GetCenters<<<1, dim_y - 21>>>(dev_y, dev_broad_y);
+	}
 	
-	// Add up the sums for every 21 lines of data up to the sharpCenter +- 10.  If the lines are increasing, interpolate the data to adjust the data for the lines that were ignored.  Choose the center of the highest 21 lines 
-*/
+	// Add up the sums for every 21 lines of data up to the sharpCenter +- 10.  If the lines are increasing, 
+	//   interpolate the data to adjust the data for the lines that were ignored.  Choose the center of the highest 21 lines 
+	CHECK(cudaMemcpy(&broad_x, (void*)dev_broad_x, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	CHECK(cudaMemcpy(&broad_y, (void*)dev_broad_y, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	
+	cout<< "broad_x: " << broad_x << endl;
+	cout<< "broad_y: " << broad_y << endl;
+	
+	cudaFree(dev_frame);
+	cudaFree(dev_x);
+	cudaFree(dev_y);
+	cudaFree(dev_broad_x);
+	cudaFree(dev_broad_y);
 }
 
 // referred to in Contracting_Grid.h
 void Contracting_Grid::findDirection()
 {
-	
+	direction_x = sharp_x - broad_x;
+	direction_y = sharp_y - broad_y;
 }
-
-// Cine Contracting_Grid::operator=(const Cine &c)
-// {
-	// Cine cine();
-	// cine.Filename(c.Filename());
-	// cine.Dim_x(c.Dim_x());
-	// cine.Dim_y(c.Dim_y());
-	// cine.Dim_z(c.Dim_z());
-	// cine.read_cine_3d();
-// }
 
 //Setter for the frame field
 void Contracting_Grid::Frame(float *input_Frame)

@@ -115,3 +115,120 @@ __global__ void g_Contracting_Max(	float *dev_frame_long,
 	//__syncthreads();
 	
 	}
+
+	
+	__global__ void g_GetValues(	float *dev_frame,	// This is the full 2D array
+									int dim,			// 0 is x, 1 is y
+									float *dev_x)
+	{
+		// How wide is each block
+		unsigned int dim_curr = blockIdx.x;
+		
+		// Which thread is this
+		unsigned int idx = threadIdx.x;
+		
+		__shared__ float *array_dim;		
+		array_dim = (float*)malloc(sizeof(float) * blockDim.x);
+		
+		__syncthreads();
+		
+		// sum each element in the 1D array
+		if(dim == 0)
+		{
+		array_dim[idx] = 	dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx, dim_curr)] 		+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 1, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 2, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 3, dim_curr)]	+
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 4, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 5, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 6, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 7, dim_curr)]	+
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 8, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 9, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 10, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 11, dim_curr)]	+
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 12, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 13, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 14, dim_curr)] 	+ 
+							dev_frame[MAP_2D(blockDim.x * 16, gridDim.x, 16 * idx + 15, dim_curr)];
+		}
+		else
+		{
+			// blockDim and griddim need to be switched
+			array_dim[idx] = 	dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx)] 		+ 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 1)] 	+ 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 2)] 	+ 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 3)]	+
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 4)] 	+ 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 5)] 	+ 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 6)] 	+ 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 7)]	+
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 8)] 	+ 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 9)] 	+ 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 10)] + 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 11)]	+
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 12)] + 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 13)] + 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 14)] + 
+								dev_frame[MAP_2D( gridDim.x, blockDim.x * 16, dim_curr, 16 * idx + 15)];
+		}
+		
+		//dev_x[dim_curr] = 0;
+		
+		__syncthreads();
+		
+		if(idx == 0)
+		{
+			dev_x[dim_curr] = 0;
+			for(int i = 0; i < blockDim.x; i++)
+			{
+				dev_x[dim_curr] += array_dim[i];
+			}
+		}		
+		__syncthreads();
+	}
+	
+	
+	__global__ void g_GetCenters(float *dev_x, unsigned int *dev_broad_x)
+	{
+		unsigned int idx = threadIdx.x;
+		
+		__shared__ float *max;
+		max = (float*)malloc(sizeof(float) * blockDim.x);
+		
+		//get the 21 rows with the max combined value.
+		max[idx] = 0;
+		
+		//if(idx < 10){ printf("idx: %d", idx);}
+		
+		__syncthreads();
+		//write a device function for this
+		for(int i = 0;i<21;i++)
+		{
+			max[idx] = max[idx] + dev_x[idx + i];
+		}
+		
+		__syncthreads();
+		
+		// Find the max value of max
+		// Write a Device function for this
+		
+		if(idx ==0)
+		{
+			*dev_broad_x = 0;
+			for(int i = 0; i < blockDim.x; i++)
+			{
+				if(max[*dev_broad_x] < max[i])
+				{
+					*dev_broad_x = i;
+				}
+			}		
+		// add 11 to the max and return it to dev_broad_x
+		dev_broad_x = dev_broad_x + 11;
+		}
+		
+		__syncthreads();
+			
+	}
+	
+	
