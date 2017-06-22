@@ -5,27 +5,16 @@
 
 #define MAP_2D(__dimx, __dimy, __x, __y)		((__y) * (__dimx) + (__x))
 
-
-/*
-Title:  d_Initialize_Array
-Description:  This kernal function takes the frame that is given and expands it so that it can be used as part of the Contracting Grid algorithm.  
-Inputs:  
-	-float *dev_frame:
-	-unsigned int real_dim_x: 
-	-unsigned int real_dim_y:
-Outputs: 
-	-float *dev_frame_long:
-*/
+// Referred to in Device.h
 __global__ void g_Zero_Array(float *dev_frame, float *dev_frame_long, unsigned int dim_x, unsigned int dim_y)
 {
 	int idx_x = threadIdx.x;
 	int idx_y = blockIdx.x;
-	//int real_dim_x = blockDim.x;
-	//int real_dim_y = gridDim.x;
 	
 	dev_frame_long[MAP_2D(blockDim.x, gridDim.x, idx_x, idx_y)] = 0;
 }
 
+// Referred to in Device.h
 __global__ void g_Initialize_Array(float *dev_frame, float *dev_frame_long, unsigned int real_dim_x, unsigned int real_dim_y)
 { 
 		int idx_x = threadIdx.x;
@@ -38,16 +27,7 @@ __global__ void g_Initialize_Array(float *dev_frame, float *dev_frame_long, unsi
 		dev_frame_long[MAP_2D(real_dim_x, real_dim_y, idx_x + extend_x, idx_y + extend_y)] = dev_frame[MAP_2D(dim_x,dim_y,idx_x, idx_y)];
 }
 
-/*
-Title:  d_Contracting_Max
-Description:  This kernal function takes the big frame that is made in the d_Initialize_Array() function and chooses 
-Inputs:  
-	-float *dev_frame:
-	-unsigned int real_dim_x: 
-	-unsigned int real_dim_y:
-Outputs: 
-	-float *dev_frame_long:
-*/
+// Referred to in Device.h
 __global__ void g_Contracting_Max(	float *dev_frame_long,
 									unsigned int *max, 									
 									unsigned int *center_x,	// X-dimension center of the enlarged frame
@@ -116,7 +96,7 @@ __global__ void g_Contracting_Max(	float *dev_frame_long,
 	
 	}
 
-	
+	// Referred to in Device.h
 	__global__ void g_GetValues(	float *dev_frame,	// This is the full 2D array
 									int dim,			// 0 is x, 1 is y
 									float *dev_x)
@@ -188,8 +168,9 @@ __global__ void g_Contracting_Max(	float *dev_frame_long,
 		__syncthreads();
 	}
 	
-	
-	__global__ void g_GetCenters(float *dev_x, unsigned int *dev_broad_x)
+	// Referred to in Device.h
+	__global__ void g_GetCenters(	float *dev_x, 
+									unsigned int *dev_broad_x)
 	{
 		unsigned int idx = threadIdx.x;
 		
@@ -230,5 +211,35 @@ __global__ void g_Contracting_Max(	float *dev_frame_long,
 		__syncthreads();
 			
 	}
+	
+	// Referred to in Device.h
+	__global__ void g_RemoveSharpCenter(	float *dev_frame,
+											unsigned int dim_x,
+											unsigned int dim_y,
+											unsigned int sharp_x,
+											unsigned int sharp_y)
+	{
+		int idx_x = threadIdx.x - 5;
+		int idx_y = blockIdx.x - 5;
+		
+		if(idx_x == 0)
+		{
+			idx_x = 6;
+		}
+		if(idx_y == 0)
+		{
+			idx_y = 6;
+		}
+		
+		// Take the frame and replace the sharpCenter with the pixels around it.  In this case, it replaces the pixels with those that are 
+		//	 diagonal to it.
+		dev_frame[MAP_2D(dim_x,dim_y, sharp_x + idx_x, sharp_x + idx_y)] = 
+		dev_frame[MAP_2D(dim_x,dim_y, (sharp_x + idx_x) +5*((idx_x > 0) - (idx_x < 0)), (sharp_y + idx_y) + 5*((idx_y > 0) - (idx_y < 0)))];		
+	}
+	
+	
+	
+	
+	
 	
 	

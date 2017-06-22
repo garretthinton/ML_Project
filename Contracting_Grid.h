@@ -161,7 +161,7 @@ class Contracting_Grid
 		
 		/*
 		Title: findSharpCenter
-		Description:  This finds the sharp peak that corresponds to a beta particle on the second surface.  This is accomplished using the Contracting_Grid algorithm and CUDA code.  GPU's are needed for this function. 
+		Description:  This finds the sharp peak that corresponds to a beta particle on the second surface.  This is accomplished using the Contracting_Grid algorithm and CUDA code.  GPU's are needed for this function.  This function is recursive.
 		Inputs:  	NONE
 		Outputs:	NONE
 		*/
@@ -169,11 +169,13 @@ class Contracting_Grid
 		
 		/*
 		Title: findBroadCenter
-		Description:  This finds the smooth, broad peak that corresponds to a beta particle on the first surface.  This is accomplished using the Contracting_Grid algorithm and CUDA code.  GPU's are needed for this function. 
+		Description:  This uses a brute force method and finds the smooth, broad peak that corresponds to a beta particle on the first surface.  This is accomplished using the Contracting_Grid algorithm and CUDA code.  GPU's are needed for this function. 
 		Inputs:  	NONE
 		Outputs:	NONE
 		*/
-		void findBroadCenter();
+		void findBroadCenter_brute();
+		
+		void findBroadCenter_Rec();
 		
 		/*
 		Title: findDirection
@@ -182,46 +184,14 @@ class Contracting_Grid
 		Outputs:	NONE
 		*/
 		void findDirection();
-	
+		
 		/*
-		Title: getFrameData
-		Description:  This function takes a Cine class, and gets three private members of the class to read in:  data_frame, dim_x, and dim_y. 
-		Inputs:  	
-			-Cine c:  This class has the getFrameData function as a friend, and therefore this function can access the needed private variables.
+		Title:  Frame
+		Description:  Reads in any 2D image that is stored as a float*, and stores it as the float* frame in the Contracting_Grid class.
+		Inputs:
+			-float* frame_in:  The input frame that is to be turned into the frame field in the Contracting_Grid class.
 		Outputs:	NONE
 		*/
-		//void getFrameData(	Cine c	);
-		/* void getFrameData(Cine c)
-		{
-			// Get the x and y dimensions to know how much memory to allocate for the frame
-			dim_x = c.Dim_x();
-			dim_y = c.Dim_y();
-			
-			real_dim_x = dim_x + (dim_x / shrinkFactor);
-			real_dim_y = dim_y + (dim_y / shrinkFactor);
-			
-			// Allocate memory 
-			//frame = new float[dim_x * dim_y];
-			frame = (float *)malloc( real_dim_x * real_dim_y * sizeof(float));
-			// Copy the values over
-			for(int i = 0; i < dim_x; ++i) {
-			  for(int j = 0; j < dim_y; ++j) {
-				//frame[MAP_2D(dim_x, dim_y, i, j,)] = c.data_frame[MAP_2D(dim_x, dim_y, i, j)];
-				frame[MAP_2D(dim_x, dim_y, dim_x/(2*shrinkFactor) + i, dim_y/(2*shrinkFactor) + j)] = c.data_frame[MAP_2D(dim_x, dim_y, i, j)];
-			  }
-			}
-		}  */
-		
-		/*
-		Title:  Operator overload of assignment operator.
-		Description:  This will be used in some of the constructors.
-		Inputs:
-			const Cine &c: This is the Cine that needs to be copied.
-		Outputs:
-			-This operator returns a Cine class.
-		*/
-		//Cine operator=(const Cine &c);
-		
 		void Frame(float* frame_in);
 };
 

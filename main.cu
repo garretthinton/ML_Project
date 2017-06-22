@@ -33,7 +33,7 @@ int main(){
 		
 		cg.findSharpCenter_Rec();
 		
-		cg.findBroadCenter();
+		cg.findBroadCenter_brute();
 		cg.findDirection();
 	//}
 	

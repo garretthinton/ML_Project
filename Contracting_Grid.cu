@@ -18,7 +18,6 @@
 // ability to output the direction of propagation for beta particle being imaged.  The idea of this class is that using the
 // Cine class, the user could read in the data and analyze it in real time.
 		
-
 #include "Contracting_Grid.h"
 
 using namespace std;
@@ -56,7 +55,6 @@ Contracting_Grid::Contracting_Grid()
 Contracting_Grid::Contracting_Grid(Cine c)
 {
 	// standard assumptions for algorithms
-	iterations = 7;
 	shrinkFactor = 2;
 	distance = .075;
 	
@@ -68,6 +66,7 @@ Contracting_Grid::Contracting_Grid(Cine c)
 	dim_x = c.Dim_x();
 	dim_y = c.Dim_y();
 	
+	// Get the biggest dimension of the frame and put it into dim_Max
 	unsigned int dim_Max = dim_x;
 	
 	if(dim_y > dim_x)
@@ -75,6 +74,7 @@ Contracting_Grid::Contracting_Grid(Cine c)
 		dim_Max = dim_y;
 	}
 	
+	// Using dim_Max, calculate the iterations needed for the algorithm to succeed
 	iterations = log(dim_Max)/log(shrinkFactor);
 	
 	real_dim_x = dim_x + (dim_x / shrinkFactor);
@@ -83,14 +83,18 @@ Contracting_Grid::Contracting_Grid(Cine c)
 
 // referred to in Contracting_Grid.h
 Contracting_Grid::Contracting_Grid(Cine c, float shrinkFactor_in)
-{
-	// standard assumptions for algorithms
-	//Checks that the value for the shrinkFactor is acceptable
+{	
+	// Checks that the value for the shrinkFactor is acceptable
 	if(shrinkFactor_in > 1)
 	{
 		shrinkFactor = shrinkFactor_in;
 	}
-	
+	else
+	{
+		cout << "shrinkFactor value must be a floating point number bigger than 1. " << endl;
+		exit(EXIT_FAILURE);
+	}
+	// standard assumption for algorithms
 	distance = .075;
 	
 	// Set these numbers to 0.
@@ -101,6 +105,7 @@ Contracting_Grid::Contracting_Grid(Cine c, float shrinkFactor_in)
 	dim_x = c.Dim_x();
 	dim_y = c.Dim_y();
 	
+	// Get the biggest dimension of the frame and put it into dim_Max
 	unsigned int dim_Max = dim_x;
 	
 	if(dim_y > dim_x)
@@ -108,6 +113,7 @@ Contracting_Grid::Contracting_Grid(Cine c, float shrinkFactor_in)
 		dim_Max = dim_y;
 	}
 	
+	// Using dim_Max, calculate the iterations needed for the algorithm to succeed
 	iterations = log(dim_Max)/log(shrinkFactor);
 	
 	real_dim_x = dim_x + (dim_x / shrinkFactor);
@@ -133,11 +139,21 @@ Contracting_Grid::Contracting_Grid(Cine c, unsigned int iterations_in, float shr
 	{
 		iterations = iterations_in;
 	}
+	else
+	{
+		cout << "Iterations value must be an integer bigger than 0. " << endl;
+		exit(EXIT_FAILURE);
+	}
 	
 	//Checks that the value for the shrinkFactor is acceptable
 	if(shrinkFactor_in > 1)
 	{
 		shrinkFactor = shrinkFactor_in;
+	}
+	else
+	{
+		cout << "shrinkFactor value must be a floating point number bigger than 1. " << endl;
+		exit(EXIT_FAILURE);
 	}
 	
 	real_dim_x = dim_x + (dim_x / shrinkFactor);
@@ -154,10 +170,22 @@ Contracting_Grid::Contracting_Grid(Cine c, float shrinkFactor_in, float distance
 	{
 		shrinkFactor = shrinkFactor_in;
 	}
+	else
+	{
+		cout << "shrinkFactor value must be a floating point number bigger than 1. " << endl;
+		exit(EXIT_FAILURE);
+	}
+	
 	
 	if(distance_in > 0)
 	{
 		distance = distance_in;
+		
+	}
+	else
+	{
+		cout << "Distance value must be an integer bigger than 0. " << endl;
+		exit(EXIT_FAILURE);
 	}
 	
 	// Set these numbers to 0.
@@ -168,6 +196,7 @@ Contracting_Grid::Contracting_Grid(Cine c, float shrinkFactor_in, float distance
 	dim_x = c.Dim_x();
 	dim_y = c.Dim_y();
 	
+	// Get the biggest dimension of the frame and put it into dim_Max
 	unsigned int dim_Max = dim_x;
 	
 	if(dim_y > dim_x)
@@ -175,6 +204,7 @@ Contracting_Grid::Contracting_Grid(Cine c, float shrinkFactor_in, float distance
 		dim_Max = dim_y;
 	}
 	
+	// Using dim_Max, calculate the iterations needed for the algorithm to succeed
 	iterations = log(dim_Max)/log(shrinkFactor);
 	
 	real_dim_x = dim_x + (dim_x / shrinkFactor);
@@ -197,11 +227,21 @@ Contracting_Grid::Contracting_Grid(Cine c, unsigned int iterations_in, float shr
 	{
 		iterations = iterations_in;
 	}
+	else
+	{
+		cout << "Iterations value must be an integer bigger than 0. " << endl;
+		exit(EXIT_FAILURE);
+	}
 	
 	//Checks that the value for the shrinkFactor is acceptable
 	if(shrinkFactor_in > 1)
 	{
 		shrinkFactor = shrinkFactor_in;
+	}
+	else
+	{
+		cout << "shrinkFactor value must be a floating point number bigger than 1. " << endl;
+		exit(EXIT_FAILURE);
 	}
 
 	//Checks that the value for the distance is acceptable
@@ -209,11 +249,15 @@ Contracting_Grid::Contracting_Grid(Cine c, unsigned int iterations_in, float shr
 	{
 		distance = distance_in;
 	}
+	else
+	{
+		cout << "Distance value must be an integer bigger than 0. " << endl;
+		exit(EXIT_FAILURE);
+	}
 	
 	real_dim_x = dim_x + (dim_x / shrinkFactor);
 	real_dim_y = dim_y + (dim_y / shrinkFactor);
 }
-
 
 // referred to in Contracting_Grid.h
 Contracting_Grid::Contracting_Grid(unsigned int iterations_in, float shrinkFactor_in, float distance_in)
@@ -231,38 +275,34 @@ Contracting_Grid::Contracting_Grid(unsigned int iterations_in, float shrinkFacto
 	{
 		iterations = iterations_in;
 	}
+	else
+	{
+		cout << "Iterations value must be an integer bigger than 0. " << endl;
+		exit(EXIT_FAILURE);
+	}
 	
 	//Checks that the value for the shrinkFactor is acceptable
 	if(shrinkFactor_in > 1)
 	{
 		shrinkFactor = shrinkFactor_in;
 	}
-
-	//No check is needed yet
-	distance = distance_in;	
-}
-
- // referred to in Contracting_Grid.h
-/* void Contracting_Grid::getFrameData(&Cine c)
-{
-	// Get the x and y dimensions to know how much memory to allocate for the frame
-	dim_x = c.Dim_x();
-	dim_y = c.Dim_y();
-	
-	real_dim_x = dim_x + (dim_x / shrinkFactor);
-	real_dim_y = dim_y + (dim_y / shrinkFactor);
-	
-	// Allocate memory 
-	//frame = new float[dim_x * dim_y];
-	malloc(frame, real_dim_x * real_dim_y * sizeof(float));
-	// Copy the values over
-	for(i = 0; i < dim_x; ++i) {
-	  for(j = 0; j < dim_y; ++j) {
-		//frame[MAP_2D(dim_x, dim_y, i, j,)] = c.data_frame[MAP_2D(dim_x, dim_y, i, j)];
-		frame[MAP_2D(dim_x, dim_y, dim_x/(2*shrinkFactor) + i, dim_y/(2*shrinkFactor) + j)] = c.data_frame[MAP_2D(dim_x, dim_y, i, j)];
-	  }
+	else
+	{
+		cout << "shrinkFactor value must be a floating point number bigger than 1. " << endl;
+		exit(EXIT_FAILURE);
 	}
-}  */
+
+	//Checks that the value for the distance is acceptable
+	if(distance_in > 0)
+	{
+		distance = distance_in;
+	}
+	else
+	{
+		cout << "Distance value must be an integer bigger than 0. " << endl;
+		exit(EXIT_FAILURE);
+	}
+}
 
 // Essence of the contracting grid algorithm and the purpose of this class.  Referred to in Contracting_Grid.h
 void Contracting_Grid::findSharpCenter_Rec()
@@ -344,6 +384,7 @@ void Contracting_Grid::findSharpCenter_Rec()
 	cout<< "frame[sharp_x+1, sharp_y+1]: "	<<   frame[MAP_2D(dim_x,dim_y,sharp_x + 1, sharp_y + 1)]<<endl; 
 	*/
 	
+	/*
 	float temp1 = frame[MAP_2D(dim_x,dim_y,0,0)];
 	int tempi = 0;
 	int tempj = 0;
@@ -360,7 +401,7 @@ void Contracting_Grid::findSharpCenter_Rec()
 	
 	cout<<"True max: "<< temp1 <<endl;
 	cout<< "i , j: \t" << tempi << " , " << tempj <<endl;
-	
+	*/
 	
 	// Free the data
 	CHECK(cudaFree(dev_frame));
@@ -371,7 +412,7 @@ void Contracting_Grid::findSharpCenter_Rec()
 }
 
 // referred to in Contracting_Grid.h
-void Contracting_Grid::findBroadCenter()
+void Contracting_Grid::findBroadCenter_brute()
 {	
 
 	// This is the frame data that will be going into the GPU
@@ -393,7 +434,7 @@ void Contracting_Grid::findBroadCenter()
 	CHECK(cudaMemcpy(dev_frame, frame, dim_Samples * sizeof(float), cudaMemcpyHostToDevice));
 	
 	// Take the sharpCenter(x,y) and delete those rows and columns + or - 10 lines
-	
+	g_RemoveSharpCenter<<<11,11>>>(dev_frame, dim_x, dim_y, sharp_x, sharp_y);
 	
 	
 	//0 or 1 depending on x or y dimension collection
