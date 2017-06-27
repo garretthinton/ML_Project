@@ -304,9 +304,11 @@ Contracting_Grid::Contracting_Grid(unsigned int iterations_in, float shrinkFacto
 	}
 }
 
+//Commented
 // Essence of the contracting grid algorithm and the purpose of this class.  Referred to in Contracting_Grid.h
 void Contracting_Grid::findSharpCenter_Rec()
 {
+	/*
 	float *dev_frame_long;
 	
 	// This is the frame data that will be going into the GPU
@@ -333,10 +335,7 @@ void Contracting_Grid::findSharpCenter_Rec()
 	CHECK(cudaMemcpy(dev_center_x, &center_x, sizeof(unsigned int), cudaMemcpyHostToDevice));
 	CHECK(cudaMemcpy(dev_center_y, &center_y, sizeof(unsigned int), cudaMemcpyHostToDevice));
 	
-	g_Zero_Array<<<real_dim_x, real_dim_y>>>(	dev_frame,
-												dev_frame_long,
-												dim_x,
-												dim_y);
+	g_Zero_Array<<<real_dim_x, real_dim_y>>>(	dev_frame_long);
 	
 	g_Initialize_Array<<<dim_x, dim_y>>>(	dev_frame,
 											dev_frame_long,
@@ -368,23 +367,6 @@ void Contracting_Grid::findSharpCenter_Rec()
 	sharp_x = center_x - ((real_dim_x - dim_x) / 2);
 	sharp_y = center_y - ((real_dim_y - dim_y) / 2);
 	
-	
-	/*
-	cout<< "sharp_x: " << sharp_x << endl;
-	cout<< "sharp_y: " << sharp_y << endl;
-	
-	cout<< "frame[sharp_x, sharp_y]: "		<<  frame[MAP_2D(dim_x,dim_y, sharp_x, sharp_y)]<<endl;
-	cout<< "frame[sharp_x-1, sharp_y]: "	<<    frame[MAP_2D(dim_x,dim_y,sharp_x - 1, sharp_y)]<<endl;
-	cout<< "frame[sharp_x+1, sharp_y]: "	<<    frame[MAP_2D(dim_x,dim_y,sharp_x + 1, sharp_y)]<<endl;
-	cout<< "frame[sharp_x, sharp_y-1]: "	<<   frame[MAP_2D(dim_x,dim_y,sharp_x, sharp_y - 1)]<<endl;
-	cout<< "frame[sharp_x-1, sharp_y-1]: "	<<   frame[MAP_2D(dim_x,dim_y,sharp_x - 1, sharp_y - 1)]<<endl;
-	cout<< "frame[sharp_x+1, sharp_y-1]: "	<<    frame[MAP_2D(dim_x,dim_y,sharp_x + 1, sharp_y - 1)]<<endl;
-	cout<< "frame[sharp_x, sharp_y+1]: "	<<   frame[MAP_2D(dim_x,dim_y,sharp_x, sharp_y + 1)]<<endl;
-	cout<< "frame[sharp_x-1, sharp_y+1]: "	<<    frame[MAP_2D(dim_x,dim_y,sharp_x - 1, sharp_y + 1)]<<endl;
-	cout<< "frame[sharp_x+1, sharp_y+1]: "	<<   frame[MAP_2D(dim_x,dim_y,sharp_x + 1, sharp_y + 1)]<<endl; 
-	*/
-	
-	/*
 	float temp1 = frame[MAP_2D(dim_x,dim_y,0,0)];
 	int tempi = 0;
 	int tempj = 0;
@@ -401,7 +383,7 @@ void Contracting_Grid::findSharpCenter_Rec()
 	
 	cout<<"True max: "<< temp1 <<endl;
 	cout<< "i , j: \t" << tempi << " , " << tempj <<endl;
-	*/
+	
 	
 	// Free the data
 	CHECK(cudaFree(dev_frame));
@@ -409,12 +391,14 @@ void Contracting_Grid::findSharpCenter_Rec()
 	CHECK(cudaFree(max));
 	CHECK(cudaFree(dev_center_x));
 	CHECK(cudaFree(dev_center_y));	
+	*/
 }
 
+//Commented
 // referred to in Contracting_Grid.h
 void Contracting_Grid::findBroadCenter_brute()
 {	
-
+	/*
 	// This is the frame data that will be going into the GPU
 	float *dev_frame;
 	float *dev_x;
@@ -460,7 +444,181 @@ void Contracting_Grid::findBroadCenter_brute()
 	cudaFree(dev_y);
 	cudaFree(dev_broad_x);
 	cudaFree(dev_broad_y);
+	*/
 }
+
+// referred to in Contracting_Grid.h
+/*void Contracting_Grid::findBroadCenter_Rec_Thrust()
+{
+	// This is the frame data that will be going into the GPU
+	float *dev_frame;
+	float *dev_frame_long;
+	unsigned int *max;
+	unsigned int *dev_center_x;
+	unsigned int *dev_center_y;
+	unsigned int iteration_curr = 0;
+	unsigned int real_dim_x_broad = real_dim_x + 22;
+	unsigned int real_dim_y_broad = real_dim_y + 22;
+	unsigned int center_x = real_dim_x_broad / 2;
+	unsigned int center_y = real_dim_y_broad / 2;
+	unsigned int totalSamples = real_dim_x_broad * real_dim_y_broad;
+	unsigned int dim_Samples = dim_x * dim_y;
+	
+	// Allocate memory in the GPU
+	CHECK(cudaMalloc((void**)&dev_frame, dim_Samples * sizeof(float)));
+	CHECK(cudaMalloc((void**)&dev_center_x, sizeof(unsigned int)));
+	CHECK(cudaMalloc((void**)&dev_center_y, sizeof(unsigned int)));
+	
+	// Copy the data to the GPU
+	CHECK(cudaMemcpy(dev_frame, frame, dim_Samples * sizeof(float), cudaMemcpyHostToDevice));
+	
+	// Take the sharpCenter(x,y) and delete those rows and columns + or - 10 lines
+	g_RemoveSharpCenter<<<11,11>>>(dev_frame, dim_x, dim_y, sharp_x, sharp_y);
+	
+	// Allocate memory in the GPU
+	CHECK(cudaMalloc((void**)&dev_frame, dim_Samples * sizeof(float)));
+	CHECK(cudaMalloc((float**)&dev_frame_long, totalSamples * sizeof(float)));
+	
+	CHECK(cudaMalloc((void**)&max, sizeof(unsigned int)));
+	CHECK(cudaMalloc((void**)&dev_center_x, sizeof(unsigned int)));
+	CHECK(cudaMalloc((void**)&dev_center_y, sizeof(unsigned int)));
+	
+	// Copy the data to the GPU
+	CHECK(cudaMemcpy(dev_frame, frame, dim_Samples * sizeof(float), cudaMemcpyHostToDevice));
+	CHECK(cudaMemcpy(dev_center_x, &center_x, sizeof(unsigned int), cudaMemcpyHostToDevice));
+	CHECK(cudaMemcpy(dev_center_y, &center_y, sizeof(unsigned int), cudaMemcpyHostToDevice));
+	
+	g_Zero_Array<<<real_dim_x, real_dim_y>>>(	dev_frame_long);
+	
+	g_Initialize_Array<<<dim_x, dim_y>>>(	dev_frame,
+											dev_frame_long,
+											real_dim_x_broad,
+											real_dim_y_broad);
+	
+	// may need a cudaDeviceSynchronize here
+	cudaDeviceSynchronize();
+	CHECK(cudaGetLastError());
+	
+	g_Contracting_Max_Broad_Thrust<<<1,16>>>(dev_frame_long,
+								max, 									
+								dev_center_x,
+								dev_center_y,
+								real_dim_x_broad,
+								real_dim_y_broad,
+								iterations, 
+								iteration_curr,
+								shrinkFactor);
+	
+	CHECK(cudaGetLastError());
+	// may need a cudaDeviceSynchronize here
+	cudaDeviceSynchronize();
+	
+	// Copy the data back to the host
+	CHECK(cudaMemcpy(&center_x, (void*)dev_center_x, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	CHECK(cudaMemcpy(&center_y, (void*)dev_center_y, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	
+	broad_x = center_x - ((real_dim_x - dim_x) / 2);
+	broad_y = center_y - ((real_dim_y - dim_y) / 2);
+	
+	// Free the data
+	CHECK(cudaFree(dev_frame));
+	CHECK(cudaFree(dev_frame_long));
+	CHECK(cudaFree(max));
+	CHECK(cudaFree(dev_center_x));
+	CHECK(cudaFree(dev_center_y));	
+}
+*/
+
+
+void Contracting_Grid::findBroadCenter_ArrayFire()
+{
+	
+}
+
+void Contracting_Grid::findBroadCenter_Rec()
+{
+	/*
+	// This is the frame data that will be going into the GPU
+	float *dev_frame;
+	float *dev_frame_long;
+	unsigned int *max;
+	unsigned int *dev_center_x;
+	unsigned int *dev_center_y;
+	unsigned int iteration_curr = 0;
+	unsigned int real_dim_x_broad = real_dim_x + 22;
+	unsigned int real_dim_y_broad = real_dim_y + 22;
+	unsigned int center_x = real_dim_x_broad / 2;
+	unsigned int center_y = real_dim_y_broad / 2;
+	unsigned int totalSamples = real_dim_x_broad * real_dim_y_broad;
+	unsigned int dim_Samples = dim_x * dim_y;
+	
+	// Allocate memory in the GPU
+	CHECK(cudaMalloc((void**)&dev_frame, dim_Samples * sizeof(float)));
+	CHECK(cudaMalloc((void**)&dev_center_x, sizeof(unsigned int)));
+	CHECK(cudaMalloc((void**)&dev_center_y, sizeof(unsigned int)));
+	
+	// Copy the data to the GPU
+	CHECK(cudaMemcpy(dev_frame, frame, dim_Samples * sizeof(float), cudaMemcpyHostToDevice));
+	
+	// Take the sharpCenter(x,y) and delete those rows and columns + or - 10 lines
+	g_RemoveSharpCenter<<<11,11>>>(dev_frame, dim_x, dim_y, sharp_x, sharp_y);
+	
+	// Allocate memory in the GPU
+	CHECK(cudaMalloc((void**)&dev_frame, dim_Samples * sizeof(float)));
+	CHECK(cudaMalloc((float**)&dev_frame_long, totalSamples * sizeof(float)));
+	
+	CHECK(cudaMalloc((void**)&max, sizeof(unsigned int)));
+	CHECK(cudaMalloc((void**)&dev_center_x, sizeof(unsigned int)));
+	CHECK(cudaMalloc((void**)&dev_center_y, sizeof(unsigned int)));
+	
+	// Copy the data to the GPU
+	CHECK(cudaMemcpy(dev_frame, frame, dim_Samples * sizeof(float), cudaMemcpyHostToDevice));
+	CHECK(cudaMemcpy(dev_center_x, &center_x, sizeof(unsigned int), cudaMemcpyHostToDevice));
+	CHECK(cudaMemcpy(dev_center_y, &center_y, sizeof(unsigned int), cudaMemcpyHostToDevice));
+	
+	g_Zero_Array<<<real_dim_x, real_dim_y>>>(	dev_frame_long);
+	
+	g_Initialize_Array<<<dim_x, dim_y>>>(	dev_frame,
+											dev_frame_long,
+											real_dim_x_broad,
+											real_dim_y_broad);
+	
+	// may need a cudaDeviceSynchronize here
+	cudaDeviceSynchronize();
+	CHECK(cudaGetLastError());
+	
+	
+	//This part needs to change for this algorithm
+	g_Contracting_Max_Broad_Thrust<<<1,16>>>(dev_frame_long,
+								max, 									
+								dev_center_x,
+								dev_center_y,
+								real_dim_x_broad,
+								real_dim_y_broad,
+								iterations, 
+								iteration_curr,
+								shrinkFactor);
+	
+	CHECK(cudaGetLastError());
+	// may need a cudaDeviceSynchronize here
+	cudaDeviceSynchronize();
+	
+	// Copy the data back to the host
+	CHECK(cudaMemcpy(&center_x, (void*)dev_center_x, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	CHECK(cudaMemcpy(&center_y, (void*)dev_center_y, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	
+	broad_x = center_x - ((real_dim_x - dim_x) / 2);
+	broad_y = center_y - ((real_dim_y - dim_y) / 2);
+	
+	// Free the data
+	CHECK(cudaFree(dev_frame));
+	CHECK(cudaFree(dev_frame_long));
+	CHECK(cudaFree(max));
+	CHECK(cudaFree(dev_center_x));
+	CHECK(cudaFree(dev_center_y));	
+	*/
+}
+
 
 // referred to in Contracting_Grid.h
 void Contracting_Grid::findDirection()
@@ -482,3 +640,135 @@ void Contracting_Grid::Frame(float *input_Frame)
 		}
 	}
 }
+
+void Contracting_Grid::find_4D_Center()
+{
+	//find the sharpCenter for now, then add on the broadCenter later.
+	
+	clock_t t = clock();
+	
+	//t(x,y:x0,y0,x1,y1) = A*exp(-1/2[(x-x0)^2 + (y-y0)^2]/sigma^2) + A*exp(-1/2[(x-x1)^2 + (y-y1)^2]/sigma^2);
+	//
+	real_dim_x += 4;
+	real_dim_y += 4;
+	//make a new long frame
+	float *frame_long = (float*)malloc(real_dim_x * real_dim_y *sizeof(float));
+	
+	for(int i = 0; i < real_dim_x * real_dim_y; i++)
+	{
+		frame_long[i] = 0.0f;
+	}
+	
+	float A = 0;
+	
+	// Give an adequate sigma value for the Gaussian function
+	// In the future, these sigma values should be evaluated in the constructor, based on the distance value given between surfaces.
+	float sigma_Sharp = 10;//3;
+	//float sigma_Broad = 8;
+	
+	int extend_x = (real_dim_x - dim_x)/2;
+	int extend_y = (real_dim_y - dim_y)/2;
+	
+	//int temp_max = 0;
+	//search the frame and find the max value.  Set as A
+	for(int i = 0; i < dim_x; i++)
+	{
+		for(int j = 0; j < dim_y; j++)
+		{
+			frame_long[MAP_2D(real_dim_x, real_dim_y, extend_x + i, extend_y + j)] = frame[MAP_2D(dim_x, dim_y, i, j)];
+			if(A < frame[MAP_2D(dim_x,dim_y,i,j)])
+			{
+				A = frame[MAP_2D(dim_x,dim_y,i,j)];
+			}
+		}
+	}
+	
+	float gauss[5][5];
+	// Get the sharpCenter Gaussian array
+	for(int i = 0; i < 5; i++)
+	{
+		for(int j = 0; j < 5; j++)
+		{
+			gauss[i][j] = A * exp((-1.0/2.0 * (pow((2.0 - (double)i ),2.0) + pow((2.0 - (double)j),2.0))) / pow(sigma_Sharp,2.0));	
+		}
+	}
+	
+	// Get the original values for the contracting grid
+	
+	unsigned int center_x = real_dim_x/2;
+	unsigned int center_y = real_dim_y/2;
+
+	unsigned int pix_x[16];
+	unsigned int pix_y[16];
+	unsigned int idx_x = 0;
+	unsigned int idx_y = 0;
+	
+	float sum[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	int max = 0;
+	// Get the sharp peak values for the 
+	for(int m = 0; m < iterations; m++)
+	{
+
+		
+		//find new widths and 
+				// Get the width of the current grid being applied
+		unsigned int width_x = dim_x / (pow((double)shrinkFactor, (double)m));
+		unsigned int width_y = dim_y / (pow((double)shrinkFactor, (double)m));
+		
+		// This should mark the top left spot for the square grid being used
+		unsigned int start_x = (center_x) - width_x / 2; 
+		unsigned int start_y = (center_y) - width_y / 2;	
+		
+		for(int k = 0; k<16; k++){
+			idx_x = k % 4;
+			idx_y = k / 4;
+			// Each thread will have a pix_x and pix_y in the frame which will be tested
+			pix_x[k] = start_x + idx_x * width_x / 3;
+			pix_y[k] = start_y + idx_y * width_y / 3;
+			
+			sum[k] = 0;
+		}
+	
+
+		max = 0;
+		for(int k = 0; k<16;k++)
+		{	
+			sum[k] = 0;
+			for(int i = 0; i < 5; i++)
+			{
+				for(int j = 0; j < 5; j++)
+				{
+					
+					// Given the values compare with the Gaussian curves
+					sum[k] += pow(frame_long[MAP_2D(real_dim_x, real_dim_y, pix_x[k] + i - 2, pix_y[k] + j - 2)] - gauss[i][j],2.0);
+									
+				}
+			}
+
+			// Choose the one where the magnitude is lowest.
+			if(sum[k] < sum[max])
+			{
+				max = k;
+				sharp_x = pix_x[k];
+				sharp_y = pix_y[k];
+				center_x = sharp_x;
+				center_y = sharp_y;
+			}	
+				
+		}
+		
+	}
+
+	sharp_x = sharp_x - ((real_dim_x - dim_x) / 2);
+	sharp_y = sharp_y - ((real_dim_y - dim_y) / 2);
+	
+	//Get time
+	t = clock() - t;
+	cout << "Time: " << (float)t/CLOCKS_PER_SEC << endl;
+	
+	//cout<<"sharp_x: " << sharp_x << endl;
+	//cout<<"sharp_y: " << sharp_y << endl;
+}
+
+
+

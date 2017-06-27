@@ -30,11 +30,11 @@ int main(){
 	
 	//for(unsigned int i = 0; i < dim_z ; i++){
 		cg.Frame(cine.read_cine_frame(0));
+		cg.find_4D_Center();
+		//cg.findSharpCenter_Rec();
 		
-		cg.findSharpCenter_Rec();
-		
-		cg.findBroadCenter_brute();
-		cg.findDirection();
+		//cg.findBroadCenter_brute();
+		//cg.findDirection();
 	//}
 	
 	cine.print_dim();

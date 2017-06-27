@@ -27,6 +27,7 @@
 #include <math.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <time.h>
 #include "Cine.h"
 #include "Device.h"
 
@@ -168,14 +169,36 @@ class Contracting_Grid
 		void findSharpCenter_Rec();
 		
 		/*
-		Title: findBroadCenter
-		Description:  This uses a brute force method and finds the smooth, broad peak that corresponds to a beta particle on the first surface.  This is accomplished using the Contracting_Grid algorithm and CUDA code.  GPU's are needed for this function. 
+		Title: findBroadCenter_brute
+		Description:  This uses a brute force method and finds the smooth, broad peak that corresponds to a beta particle on the first surface.  GPU's are needed for this function. 
 		Inputs:  	NONE
 		Outputs:	NONE
 		*/
 		void findBroadCenter_brute();
 		
+		/*
+		Title: findBroadCenter_Rec
+		Description:  This uses a modified Contracting Grid algorithm to find the broad peak in the imager.   GPU's are needed for this function.  This function uses only programmer code to maximize the code's effectiveness.
+		Inputs:  	NONE
+		Outputs:	NONE
+		*/
+		void findBroadCenter_Rec_Thrust();
+		
+				/*
+		Title: findBroadCenter_Rec
+		Description:  This uses a modified Contracting Grid algorithm to find the broad peak in the imager.   GPU's are needed for this function.  This function uses the Thrust library to simplify the code.
+		Inputs:  	NONE
+		Outputs:	NONE
+		*/
 		void findBroadCenter_Rec();
+		
+		/*
+		Title: findBroadCenter_ArrayFire
+		Description:  This uses a modified Contracting Grid algorithm to find the broad peak in the imager.   GPU's are needed for this function.  This function uses the ArrayFire code to try to get the best performance possible.
+		Inputs:  	NONE
+		Outputs:	NONE
+		*/
+		void findBroadCenter_ArrayFire();
 		
 		/*
 		Title: findDirection
@@ -193,6 +216,14 @@ class Contracting_Grid
 		Outputs:	NONE
 		*/
 		void Frame(float* frame_in);
+		
+		/*
+		Title: find_4D_center
+		Description:  Uses a 4D contracting grid method to find both the broad and sharp peaks.  
+		Inputs:  	NONE
+		Outputs:	NONE
+		*/
+		void find_4D_Center();
 };
 
 
