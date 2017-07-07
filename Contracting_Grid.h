@@ -30,6 +30,7 @@
 #include <time.h>
 #include "Cine.h"
 #include "Device.h"
+#include <algorithm>
 
 #define MAP_2D(__dimx, __dimy, __x, __y)		((__y) * (__dimx) + (__x))
 
@@ -42,7 +43,7 @@ class Contracting_Grid
 		unsigned int iterations;
 		
 		// The factor to shrink the square in the Contracting Grid algorithm. 
-		//   Or in other words: Size_next = Size / shrinkFactor
+		//   Or in other words: Size_next = Size / shrinkFactor^iteration
 		float shrinkFactor;
 		
 		// The distance between surfaces in the system used 
@@ -50,9 +51,26 @@ class Contracting_Grid
 		
 		// The image frame to be analyzed
 		float *frame;
-				
-		// The point with the max value in the current iteration of the Contracting Grid algorithm
-		//unsigned int tempSquareCenter;
+		
+		// stores the 2D gaussian functions to be used to check for the Sharp and Broad peaks.
+		float *gauss_Sharp, *gauss_Broad;
+		
+		float *dev_frame, *dev_frame_long;
+			
+		float *dev_a;
+		float *dev_a_final;
+		unsigned int *dev_center_x;
+		unsigned int *dev_center_y;
+		float *pix_Compare;
+		float *dev_gauss_Sharp;
+		float A;
+		
+		
+		unsigned int center_x; 
+		unsigned int center_y; 
+		unsigned int iteration_curr;	
+		//the sigmas needed for the gaussian shapes.  
+		float sigma_Sharp, sigma_Broad;
 		
 		// The sharpCenter pixel data points
 		unsigned int sharp_x, sharp_y;
@@ -63,17 +81,14 @@ class Contracting_Grid
 		// The direction of propagation for the beta particle
 		float direction_x, direction_y;
 		
-		// The expanded grid's x-dimension extents
-		unsigned int real_dim_x;
+		// The expanded grid's x and y-dimension extents
+		unsigned int real_dim_x, real_dim_y;
 		
-		// The expanded grid's y-dimension extents
-		unsigned int real_dim_y;
+		// The number of pixels in the x and y-dimension of the frame
+		unsigned int dim_x, dim_y;
 		
-		// The number of pixels in the x-dimension of the frame
-		unsigned int dim_x;
-		
-		// The number of pixels in the y-dimension of the frame
-		unsigned int dim_y;
+		// The number of points on a side of the square grid.  The total number of points would be grid^2.
+		unsigned int grid;
 		
 	public:
 	
@@ -192,13 +207,6 @@ class Contracting_Grid
 		*/
 		void findBroadCenter_Rec();
 		
-		/*
-		Title: findBroadCenter_ArrayFire
-		Description:  This uses a modified Contracting Grid algorithm to find the broad peak in the imager.   GPU's are needed for this function.  This function uses the ArrayFire code to try to get the best performance possible.
-		Inputs:  	NONE
-		Outputs:	NONE
-		*/
-		void findBroadCenter_ArrayFire();
 		
 		/*
 		Title: findDirection
@@ -224,6 +232,9 @@ class Contracting_Grid
 		Outputs:	NONE
 		*/
 		void find_4D_Center();
+		
+		//Cuda version
+		void find_4D_Center_Cuda();
 };
 
 

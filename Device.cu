@@ -5,6 +5,8 @@
 
 #define MAP_2D(__dimx, __dimy, __x, __y)		((__y) * (__dimx) + (__x))
 
+__device__ float pix_C;
+
 // Referred to in Device.h
 __global__ void g_Zero_Array(float *dev_frame_long)
 {
@@ -426,6 +428,248 @@ __global__ void g_PutInArray_1(	float *dev_frame_long,
 */
 }
 		
+//Adjust this for not only sum, but also max/min:  do a float 2 to store both the max and the min
+template <unsigned int blockSize>
+__global__ void g_reduce6_sum(int *g_idata, int *g_odata, unsigned int n)
+{
+	extern __shared__ int sdata[];
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x*(blockSize*2) + tid;
+	unsigned int gridSize = blockSize*2*gridDim.x;
+	sdata[tid] = 0;
+	while (i < n) 
+	{ 
+		sdata[tid] += g_idata[i] + g_idata[i+blockSize]; 
+		i += gridSize; 
+	}
+	__syncthreads();
+	
+	if (blockSize >= 512) { if (tid < 256) { sdata[tid] += sdata[tid + 256]; } __syncthreads(); }
+	if (blockSize >= 256) { if (tid < 128) { sdata[tid] += sdata[tid + 128]; } __syncthreads(); }
+	if (blockSize >= 128) { if (tid < 64) { sdata[tid] += sdata[tid + 64]; } __syncthreads(); }
+	if (tid < 32) {
+	if (blockSize >= 64) sdata[tid] += sdata[tid + 32];
+	if (blockSize >= 32) sdata[tid] += sdata[tid + 16];
+	if (blockSize >= 16) sdata[tid] += sdata[tid + 8];
+	if (blockSize >= 8) sdata[tid] += sdata[tid + 4];
+	if (blockSize >= 4) sdata[tid] += sdata[tid + 2];
+	if (blockSize >= 2) sdata[tid] += sdata[tid + 1];
+	}
+	if (tid == 0) g_odata[blockIdx.x] = sdata[0];
+}
+
+/* //Adjust this for not only sum, but also max/min:  do a float 2 to store both the max and the min
+template <unsigned int blockSize>
+__global__ void g_reduce6_MinMax(float *g_idata, float *g_odata, unsigned int n)
+{
+	extern __shared__ float sdata1[];
+	__shared__ float maxPix;
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x*(blockSize*2) + tid;
+	unsigned int gridSize = blockSize*2*gridDim.x;
+	sdata1[tid] = 0;
+	while (i < n) 
+	{ 
+		maxPix = max(g_idata[i],g_idata[i + blockSize]);
+		sdata1[tid] = max(sdata1[tid],maxPix); 
+		i += gridSize; 
+	}
+	__syncthreads();
+	
+	if (blockSize >= 512) { if (tid < 256) { sdata1[tid] = max(sdata1[tid], sdata1[tid + 256]); } __syncthreads(); }
+	if (blockSize >= 256) { if (tid < 128) { sdata1[tid] = max(sdata1[tid], sdata1[tid + 128]); } __syncthreads(); }
+	if (blockSize >= 128) { if (tid < 64) { sdata1[tid] = max(sdata1[tid], sdata1[tid + 64]);  } __syncthreads(); }
+	if (tid < 32) {
+	if (blockSize >= 64) sdata1[tid] = max(sdata1[tid], sdata1[tid + 32]);
+	if (blockSize >= 32) sdata1[tid] = max(sdata1[tid], sdata1[tid + 16]);
+	if (blockSize >= 16) sdata1[tid] = max(sdata1[tid], sdata1[tid + 8]);
+	if (blockSize >= 8) sdata1[tid] = max(sdata1[tid], sdata1[tid + 4]);
+	if (blockSize >= 4) sdata1[tid] = max(sdata1[tid], sdata1[tid + 2]);
+	if (blockSize >= 2) sdata1[tid] = max(sdata1[tid], sdata1[tid + 1]);
+	}
+	// This shows that the final values are placed in an array of output data that needs to have a max found with it.
+	if (tid == 0) g_odata[blockIdx.x] = sdata1[0];
+} */
+
+
+__global__ void g_getPeaks(	float *dev_frame_long,
+							float *dev_gauss_Sharp,			
+							float *pix_Compare,
+							unsigned int *center_x,	// X-dimension center of the enlarged frame
+							unsigned int *center_y, // Y-dimension center of the enlarged frame
+							unsigned int real_dim_x,
+							unsigned int real_dim_y,
+							unsigned int iteration_num, 
+							unsigned int iteration_curr,
+							unsigned int grid,
+							float shrinkFactor)
+{
+	
+	// Should be 16 threads happening here.
+	extern __shared__ float pixel[];// = (float*)malloc(grid * grid * sizeof(float));
+	float *pix_Compare1 = (float*)malloc(sizeof(float));
+	//*pix_Compare = 0;
+	//float pix_Compare[1];
+	//extern __shared__ float pix_Compare[];
+	unsigned int idx_x = threadIdx.x % grid;
+	unsigned int idx_y = threadIdx.x / grid;
+	unsigned int dim_x = (real_dim_x - 20) / (1 + (1 / shrinkFactor));
+	unsigned int dim_y = (real_dim_y - 20) / (1 + (1 / shrinkFactor));
+	
+	// Get the width of the current grid being applied
+	unsigned int width_x = dim_x / (pow((double)shrinkFactor, (double)iteration_curr));
+	unsigned int width_y = dim_y / (pow((double)shrinkFactor, (double)iteration_curr));
+	
+	// This should mark the top left spot for the square grid being used
+	unsigned int start_x = (*center_x) - width_x / 2; 
+	unsigned int start_y = (*center_y) - width_y / 2;	
+	
+	// Each thread will have a pix_x and pix_y in the frame which will be tested
+	unsigned int pix_x = start_x + idx_x * width_x / (grid - 1);
+	unsigned int pix_y = start_y + idx_y * width_y / (grid - 1);
+	
+	//__shared__ float pix_C[16] ;//= (float*)malloc(sizeof(float) * grid * grid);
+	
+	//pixel[MAP_2D(grid, grid, idx_x, idx_y)] = dev_frame_long[MAP_2D(real_dim_x, real_dim_y, pix_x, pix_y)];
+	
+	//printf("pixel[x,y]: %d \n", pixel[MAP_2D(4,4,idx_x,idx_y)]);
+	//printf("dev_frame_long[x,y]: %d \n", dev_frame_long[MAP_2D(real_dim_x,real_dim_y, pix_x, pix_y)]);
+	
+	// This function takes the pixels to be compared, compares them with a gaussian distribution, and returns a best fit number.
+	//Remember, shared memory cannot be put into a parameter
+	if(threadIdx.x == 0)
+	{
+		printf("iteration_curr: %d \n",iteration_curr);
+	}
+	g_compareGauss<<<1,25, 25 * sizeof(float) * sizeof(float)>>>(	dev_frame_long,
+																	dev_gauss_Sharp,
+																	pix_Compare1, 
+																	5,				// This is for the Gaussian grid, not the Contracting grid.
+																	grid,
+																	real_dim_x,
+																	real_dim_y,
+																	pix_x,
+																	pix_y,
+																	idx_x,
+																	idx_y);
+												
+	
+	
+	/*
+	float sum[25];
+	float subtraction = 0;
+	for(int i = 0; i < 5;i++)
+	{
+		for(int j = 0; j < 5; j++)
+		{
+			subtraction = dev_frame_long[MAP_2D(real_dim_x, real_dim_y, pix_x + i - 2,pix_y + j - 2)]  - dev_gauss_Sharp[MAP_2D(5,5,i,j)];
+		
+			// The pix_x is 1, and is causing the above to crash
+			sum[idx_x + idx_y * 5] = subtraction * subtraction;
+		}
+	}
+	
+	for(int i = 1; i < 5 * 5;i++)
+	{				
+		sum[0] += sum[i];				
+	}
+	pixel[idx_x + idx_y * 4] = sum[0];
+	
+	*/
+	
+	pixel[idx_x + (idx_y * 4)] = *pix_Compare1;
+
+	__syncthreads();
+
+	if(threadIdx.x == 0)
+	{
+		int bestFit_Sharp = 0;
+		
+		// This needs to be replaced with the gaussian to compare against
+ 		for(int i = 1; i < grid * grid; i++)
+		{
+			if(pixel[i] == 0)
+			{
+				printf("iteration, i: %d %d", iteration_curr, i);
+			}
+			//printf("pixel[%d]: %d ", i, pixel[i]);
+			//if(pixel[i] < pixel[bestFit_Sharp])
+			if(pixel[i] < pixel[bestFit_Sharp])
+			{
+				bestFit_Sharp = i;
+			}
+		
+		} 		
+		printf("\t bestFit_Sharp: %d \n \n", bestFit_Sharp);
+		//Assign bestFit_Sharp as the new center:  
+		*center_x = (start_x + (bestFit_Sharp % grid) * width_x / (grid - 1));
+		*center_y = (start_y + (bestFit_Sharp / grid) * width_y / (grid - 1));
+		
+		
+		iteration_curr++;
+		
+		if(iteration_curr < iteration_num ){		// iteration_num
+			g_getPeaks<<<1, grid * grid, grid * grid * sizeof(float)>>>(	dev_frame_long, 
+																			dev_gauss_Sharp,
+																			pix_Compare,
+																			center_x,
+																			center_y,
+																			real_dim_x,
+																			real_dim_y,
+																			iteration_num,
+																			iteration_curr,
+																			grid,
+																			shrinkFactor);
+		}
+		else
+		{
+			return;
+		}
+		
+	}
+	__syncthreads();
+}
+	
+	__global__ void g_compareGauss(	float* dev_frame_long,
+									float *dev_gauss_Sharp,
+									float *pixel, 
+									unsigned int gauss_grid,
+									unsigned int grid,
+									unsigned int real_dim_x,
+									unsigned int real_dim_y,
+									unsigned int pix_x,
+									unsigned int pix_y,
+									unsigned int i_x,
+									unsigned int i_y)
+	{
+		extern __shared__ float sum[];
+		unsigned int idx_x = threadIdx.x % gauss_grid;
+		unsigned int idx_y = threadIdx.x / gauss_grid;
+		float subtraction = 0;
+		subtraction = dev_frame_long[MAP_2D(real_dim_x, real_dim_y, pix_x + idx_x - 2,pix_y + idx_y - 2)]  - dev_gauss_Sharp[MAP_2D(5,5,idx_x,idx_y)];
+		
+		// The pix_x is 1, and is causing the above to crash
+		sum[idx_x + (idx_y * gauss_grid)] = subtraction * subtraction;
+		
+		// This may not work because there is more than one block
+		__syncthreads();
+		
+		// replace this with reduce6 algorithm
+		if(threadIdx.x  == 0)
+		{			
+			for(int i = 1;i<gauss_grid * gauss_grid;i++)
+			{				
+				sum[0] += sum[i];				
+			}
+			*pixel = sum[0];
+		}
+		
+		
+		//__syncthreads();		
+	}
+	
+	
+
 	
 	
 	

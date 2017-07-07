@@ -26,11 +26,12 @@ int main(){
 	//float *all_frames = new float[cine.Dim_x() * cine.Dim_y() * cine.Dim_z()]; 
 	//all_frames = cine.Data_All();
 	
-	Contracting_Grid cg(cine,2.0f);
+	Contracting_Grid cg(cine);
 	
 	//for(unsigned int i = 0; i < dim_z ; i++){
 		cg.Frame(cine.read_cine_frame(0));
 		cg.find_4D_Center();
+		cg.find_4D_Center_Cuda();
 		//cg.findSharpCenter_Rec();
 		
 		//cg.findBroadCenter_brute();

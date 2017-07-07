@@ -24,6 +24,7 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <math.h>
+#include <algorithm>
 #include <thrust/sort.h>
 #include <thrust/transform_reduce.h>
 #include <thrust/extrema.h>
@@ -243,6 +244,35 @@ __global__ void g_PutInArray(	float *dev_frame_long,
 __global__ void g_PutInArray_1(	float *dev_frame_long,
 								float *dev_array,
 								unsigned int pix_x,
-								unsigned int pix_y);									
+								unsigned int pix_y);
+
+__global__ void g_getPeaks(	float *dev_frame_long,
+							float *dev_gauss_Sharp,
+							float *pix_Compare,
+							unsigned int *center_x,	// X-dimension center of the enlarged frame
+							unsigned int *center_y, // Y-dimension center of the enlarged frame
+							unsigned int real_dim_x,
+							unsigned int real_dim_y,
+							unsigned int iteration_num, 
+							unsigned int iteration_curr,
+							unsigned int grid,
+							float shrinkFactor);
+
+/* template <unsigned int blockSize>
+__global__ void g_reduce6_MinMax(	float *g_idata,
+									float *g_odata,
+									unsigned int n); */
+
+__global__ void g_compareGauss(	float* dev_frame_long,
+								float *dev_gauss_Sharp,
+								float *pixel,
+								unsigned int gauss_grid,
+								unsigned int grid,
+								unsigned int real_dim_x,
+								unsigned int real_dim_y,
+								unsigned int pix_x,
+								unsigned int pix_y,
+								unsigned int i_x,
+								unsigned int i_y);								
 									
 #endif
